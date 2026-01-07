@@ -1,14 +1,7 @@
 # Google Lighthouse based Tests
 [![Regression Test](https://github.com/Webperf-se/webperf_core/actions/workflows/regression-test-google-lighthouse-based.yml/badge.svg)](https://github.com/Webperf-se/webperf_core/actions/workflows/regression-test-google-lighthouse-based.yml)
 
-This is a general page for all tests that are using Google Lighthouse in the background.
-
-Following tests are using Google Lighthouse in the background:
-* [Google Lighthouse accessibility with Axe](google-lighthouse-a11y.md)
-* [Google Lighthouse performance](google-lighthouse-performance.md)
-* [Google Lighthouse best practice](google-lighthouse-best-practice.md)
-* [Google Lighthouse SEO](google-lighthouse-seo.md)
-* [Energy efficiency](energy-efficiency.md)
+This is a general page for the lighthouse test that are using Google Lighthouse in the background.
 
 ## How to setup?
 
@@ -35,7 +28,7 @@ Follow the instructions below depending on what you choose.
 Benefit of this option is that you can use it to test pre production urls like your AcceptanceTest environment.
 
 * Download and install Node.js (version 20.x)
-* Install NPM packages ( `npm install --production` )
+* Install NPM packages ( `npm install --omit=dev` )
 
 ## Read more
 

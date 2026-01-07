@@ -10,9 +10,49 @@ import shutil
 import urllib
 from urllib.parse import ParseResult, urlparse, urlunparse
 import uuid
-from tests.utils import get_dependency_version, is_file_older_than
+from tests.utils import change_url_to_test_url,\
+    get_dependency_version, is_file_older_than,\
+    get_translation, create_or_append_translation,\
+    flatten_issues_dict
 import engines.sitespeed_result as sitespeed_cache
 from helpers.setting_helper import get_config
+from helpers.browser_helper import get_chromium_browser
+
+
+
+def get_webperf_json(filename):
+    if not os.path.exists(filename):
+        return None
+
+    data_str = get_sanitized_browsertime(filename)
+    return json.loads(data_str)
+
+def create_webperf_json(url, sitespeed_plugins):
+    # We don't need extra iterations for what we are using it for
+    sitespeed_iterations = 1
+    sitespeed_arg = (
+            f'--shm-size=1g -b {get_chromium_browser()} '
+            f'{sitespeed_plugins}'
+            # '--plugins.remove screenshot --plugins.remove html --plugins.remove metrics '
+            '--plugins.remove screenshot --plugins.remove metrics '
+            '--browsertime.screenshot false --screenshot false --screenshotLCP false '
+            '--browsertime.screenshotLCP false --chrome.cdp.performance false '
+            '--browsertime.chrome.timeline false --videoParams.createFilmstrip false '
+            '--visualMetrics false --visualMetricsPerceptual false '
+            '--visualMetricsContentful false --browsertime.headless true '
+            '--utc true '
+            '--browsertime.chrome.args ignore-certificate-errors '
+            f'-n {sitespeed_iterations}')
+    if get_config('tests.sitespeed.xvfb'):
+        sitespeed_arg += ' --xvfb'
+
+    (folder, filename) = get_result(url,
+        get_config('tests.sitespeed.docker.use'),
+        sitespeed_arg,
+        get_config('tests.sitespeed.timeout'))
+
+    data = get_webperf_json(filename)
+    return data
 
 def to_firefox_url_format(url):
     """
@@ -52,23 +92,19 @@ def get_result(url, sitespeed_use_docker, sitespeed_arg, timeout):
         tuple: The name of the result folder and the filename of the HAR file.
     """
     folder = 'tmp'
-    if get_config('general.cache.use'):
-        folder = 'cache'
-
     o = urlparse(url)
     hostname = o.hostname
 
     result_folder_name = os.path.join(folder, hostname, f'{str(uuid.uuid4())}')
 
+    if get_config('tests.sitespeed.mobile'):
+        url = change_url_to_test_url(url, 'mobile')
+        sitespeed_arg += (' --mobile')
+
     sitespeed_arg += (' --postScript chrome-cookies.cjs --postScript chrome-versions.cjs '
                       f'--outputFolder {result_folder_name} {url}')
 
     filename = ''
-    # Should we use cache when available?
-    if get_config('general.cache.use'):
-        tmp_result_folder_name, filename = get_cached_result(url, hostname)
-        if filename != '':
-            return (tmp_result_folder_name, filename)
 
     test = get_result_using_no_cache(sitespeed_use_docker, sitespeed_arg, timeout)
     test = test.replace('\\n', '\r\n').replace('\\\\', '\\')
@@ -76,52 +112,10 @@ def get_result(url, sitespeed_use_docker, sitespeed_arg, timeout):
     cookies_json = get_cookies(test)
     versions_json = get_versions(test)
 
-    filename_old = get_browsertime_har_path(os.path.join(result_folder_name, 'pages'))
+    folder = os.path.join(result_folder_name, 'data')
+    filename = os.path.join(result_folder_name, 'data', 'webperf-core.json')
 
-    filename = f'{result_folder_name}.har'
-
-    if os.path.exists(filename_old):
-        modify_browsertime_content(filename_old, cookies_json, versions_json)
-        cleanup_results_dir(filename_old, result_folder_name)
-        return (result_folder_name, filename)
-
-    if os.path.exists(result_folder_name):
-        shutil.rmtree(result_folder_name)
-    return (result_folder_name, '')
-
-def get_cached_result(url, hostname):
-    """
-    Retrieves the cached result for a given URL and hostname.
-
-    Args:
-        url (str): The URL to be tested.
-        hostname (str): The hostname of the site.
-
-    Returns:
-        tuple: The name of the result folder and the filename of the HAR file.
-    """
-    # added for firefox support
-    url2 = to_firefox_url_format(url)
-
-    filename = ''
-    result_folder_name = ''
-    sites = sitespeed_cache.read_sites(hostname, -1, -1)
-    for site in sites:
-        if url == site[1] or url2 == site[1]:
-            filename = site[0]
-
-            if is_file_older_than(filename, timedelta(minutes=get_config('general.cache.max-age'))):
-                filename = ''
-                continue
-
-            result_folder_name = filename[:filename.rfind(os.path.sep)]
-
-            file_created_timestamp = os.path.getctime(filename)
-            file_created_date = time.ctime(file_created_timestamp)
-            print((f'Cached entry found from {file_created_date},'
-                       ' using it instead of calling website again.'))
-            break
-    return result_folder_name,filename
+    return (folder, filename)
 
 def get_versions(test):
     """
@@ -153,13 +147,27 @@ def get_cookies(test):
         dict: A dictionary containing the cookies.
     """
     regex = r"COOKIES:START: {\"cookies\":(?P<COOKIES>.+)} COOKIES:END"
-    cookies = '{}'
+    raw = '{}'
     matches = re.finditer(
         regex, test, re.MULTILINE)
     for _, match in enumerate(matches, start=1):
-        cookies = match.group('COOKIES')
-    cookies_json = json.loads(cookies)
-    return cookies_json
+        raw = match.group('COOKIES')
+    json_data = json.loads(raw)
+
+    cookies = []
+    for item_json in json_data:
+        cookie = {}
+        for key, value in item_json.items():
+            if key in ('name', 'value', 'domain', 'path', 'httpOnly', 'secure'):
+                cookie[key] = value
+            elif key in ('expires'):
+                if value != -1:
+                    cookie[key] = value
+            else:
+                cookie[f'_{key}'] = value
+        cookies.append(cookie)
+
+    return cookies
 
 
 def cleanup_results_dir(browsertime_path, path):
@@ -172,7 +180,21 @@ def cleanup_results_dir(browsertime_path, path):
         path (str): The path to the directory to be removed.
     """
     correct_path = f'{path}.har'
-    os.rename(browsertime_path, correct_path)
+    coach_path = browsertime_path.replace('browsertime.har', 'coach.json')
+    correct_coach_path = f'{path}-coach.json'
+    sustainable_path = browsertime_path.replace('browsertime.har', 'sustainable.json')
+    correct_sustainable_path = f'{path}-sustainable.json'
+    lighthouse_path = browsertime_path.replace('browsertime.har', 'lighthouse-lhr.json')
+    correct_lighthouse_path = f'{path}-lighthouse-lhr.json'
+
+    if os.path.exists(browsertime_path):
+        os.rename(browsertime_path, correct_path)
+    if os.path.exists(coach_path):
+        os.rename(coach_path, correct_coach_path)
+    if os.path.exists(sustainable_path):
+        os.rename(sustainable_path, correct_sustainable_path)
+    if os.path.exists(lighthouse_path):
+        os.rename(lighthouse_path, correct_lighthouse_path)
     shutil.rmtree(path)
 
 def get_result_using_no_cache(sitespeed_use_docker, arg, timeout):
@@ -308,7 +330,7 @@ def modify_browsertime_content(input_filename, cookies, versions):
     # add cookies
     json_result['log']['cookies'] = cookies
     # add software name and versions
-    json_result['log']['software'] = versions
+    json_result['log']['_software'] = versions
 
     if 'version' in json_result['log']:
         del json_result['log']['version']
@@ -320,9 +342,15 @@ def modify_browsertime_content(input_filename, cookies, versions):
         del json_result['log']['creator']
         has_minified = True
     if 'pages' in json_result['log']:
-        has_minified = False
         for page in json_result['log']['pages']:
             keys_to_remove = []
+
+            # NOTE: Fix for inconsistancy in sitespeed handling of not being able to access webpage
+            # For some reason it will sometime not add _url field but add url in title field (See TLSv1.0 and TLSv1.1 testing)
+            if 'id' in page and 'failing_page' == page['id'] and '_url' not in page and 'title' in page:
+                page['_url'] = page['title']
+                has_minified = True
+
             for key in page.keys():
                 if key != '_url':
                     keys_to_remove.append(key)
@@ -330,14 +358,13 @@ def modify_browsertime_content(input_filename, cookies, versions):
                 del page[key]
                 has_minified = True
     if 'entries' in json_result['log']:
-        has_minified = False
         for entry in json_result['log']['entries']:
-            has_minified = modify_browertime_content_entity(entry)
+            has_minified = modify_browertime_content_entity(entry) or has_minified
 
     if has_minified:
         write_json(input_filename, json_result)
 
-    return result
+    return json_result
 
 def modify_browertime_content_entity(entry):
     """
@@ -408,6 +435,9 @@ def get_browsertime_har_path(parent_path):
         str: The path of the 'browsertime.har' file if found, else None.
     """
     if not os.path.exists(parent_path):
+        return ''
+
+    if not os.path.isdir(parent_path):
         return ''
 
     sub_dirs = os.listdir(parent_path)

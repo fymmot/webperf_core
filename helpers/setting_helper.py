@@ -12,6 +12,9 @@ config_mapping = {
         "review",
         "general.review.show"): "bool|general.review.show",
     (
+        "review-data",
+        "general.review.data"): "bool|general.review.data",
+    (
         "details",
         "general.review.details",
         "use_detailed_report",
@@ -57,13 +60,16 @@ config_mapping = {
         "css_review_group_errors",
         "CSS_REVIEW_GROUP_ERRORS"): "bool|tests.css.group",
     (
-        "disable-sandbox",
-        "tests.lighthouse.disable-sandbox"): "bool|tests.lighthouse.disable-sandbox",
+        "browser",
+        "tests.sitespeed.browser"): "string|tests.sitespeed.browser",
     (
         "sitespeeddocker",
         "tests.sitespeed.docker.use",
         "sitespeed_use_docker",
         "SITESPEED_USE_DOCKER"): "bool|tests.sitespeed.docker.use",
+    (
+        "mobile",
+        "tests.sitespeed.mobile"): "bool|tests.sitespeed.mobile",
     (
         "sitespeedtimeout",
         "tests.sitespeed.timeout",
@@ -75,10 +81,32 @@ config_mapping = {
         "sitespeed_iterations",
         "SITESPEED_ITERATIONS"): "int|tests.sitespeed.iterations",
     (
+        "sitespeedxvfb",
+        "tests.sitespeed.xvfb"): "bool|tests.sitespeed.xvfb",
+    (
+        "sitespeedcustomcache",
+        "general.cache.folder",
+        "tests.sitespeed.cache.folder"): "string|general.cache.folder",
+    (
         "csponly",
         "tests.http.csp-only",
         "csp_only",
         "CSP_ONLY"): "bool|tests.http.csp-only",
+    (
+        "csp-generate-hashes",
+        "tests.http.csp-generate-hashes"): "bool|tests.http.csp-generate-hashes",
+    (
+        "csp-generate-strict-recommended-hashes",
+        "tests.http.csp-generate-strict-recommended-hashes"): "bool|tests.http.csp-generate-strict-recommended-hashes",
+    (
+        "csp-generate-font-hashes",
+        "tests.http.csp-generate-font-hashes"): "bool|tests.http.csp-generate-font-hashes",
+    (
+        "csp-generate-img-hashes",
+        "tests.http.csp-generate-img-hashes"): "bool|tests.http.csp-generate-img-hashes",
+    (
+        "csp-generate-js-hashes",
+        "tests.http.csp-generate-js-hashes"): "bool|tests.http.csp-generate-js-hashes",
     (
         "stealth",
         "tests.software.stealth.use",
@@ -91,11 +119,6 @@ config_mapping = {
         "SOFTWARE_GITHUB_ADADVISORY_DATABASE_PATH"
     ): "string|tests.software.advisory.path",
     (
-        "browser",
-        "tests.software.browser",
-        "software_browser",
-        "SOFTWARE_BROWSER"): "string|tests.software.browser",
-    (
         "mailport25",
         "tests.email.support.port25",
         "email_network_support_port25_traffic",
@@ -104,7 +127,10 @@ config_mapping = {
         "mailipv6",
         "tests.email.support.ipv6",
         "email_network_support_ipv6_traffic",
-        "EMAIL_NETWORK_SUPPORT_IPV6_TRAFFIC"): "bool|tests.email.support.ipv6"
+        "EMAIL_NETWORK_SUPPORT_IPV6_TRAFFIC"): "bool|tests.email.support.ipv6",
+    (
+        "404url",
+        "tests.page-not-found.override-url"): "bool|tests.page-not-found.override-url"
 }
 
 

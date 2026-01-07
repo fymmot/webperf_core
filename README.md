@@ -35,27 +35,23 @@ but you can run this project in many ways and what you choose depends on your ne
 
 # Tests
 
-Add a interesting ingress here.
-[Read more about our tests](./docs/tests/README.md) or go directly to a specific test below.
+Webperf Core consists of many different tests. [Read general information about our tests](./docs/tests/README.md) or go directly to a specific test below.
 
 * [Accessibility (Pa11y)](./docs/tests/pa11y.md)
-* [Accessibility (Lighthouse)](./docs/tests/google-lighthouse-a11y.md)
 * [Website performance (SiteSpeed)](./docs/tests/sitespeed.md)
-* [Website performance (Lighthouse)](./docs/tests/google-lighthouse-performance.md)
-* [Best practice on Web (Lighthouse)](./docs/tests/google-lighthouse-best-practice.md)
-* [SEO best practise (Lighthouse)](./docs/tests/google-lighthouse-seo.md)
 * [Validate 404 page (by default checks for Swedish text, though)](./docs/tests/page-not-found.md)
-* [Validate HTML (W3C)](./docs/tests/html.md)
-* [Validate CSS (W3C)](./docs/tests/css.md)
 * [Security, data-protecting & Integrity (Webbkoll)](./docs/tests/webbkoll.md)
-* [Frontend quality (YellowLab Tools)](./docs/tests/yellowlab.md)
 * [Energy Efficiency](./docs/tests/energy-efficiency.md)
 * [Standard files](./docs/tests/standard.md)
 * [HTTP and Network](./docs/tests/http.md)
 * [Tracking & Integrity](./docs/tests/tracking.md)
 * [Email (Beta)](./docs/tests/email.md)
-* [Software (Alpha)](./docs/tests/software.md)
+* [Software](./docs/tests/software.md)
 * [Accessibility Statement (Alpha)](./docs/tests/a11y-statement.md)
+* [CSS (StyleLint)](./docs/tests/css-linting.md)
+* [HTML (html-validate)](./docs/tests/html-validate.md)
+* [Javascript (ESlint)](./docs/tests/js-linting.md)
+* [Accessibility, Best practice, Performance, SEO (Google Lighthouse)](./docs/tests/google-lighthouse.md)
 
 
 # Contribute
@@ -82,4 +78,8 @@ Why not look at third parties.
 
 
 
+# Credits
 
+We could not do this without all help from contributors and other projects we use.
+
+[Read more about them under credits](./CREDITS.md)

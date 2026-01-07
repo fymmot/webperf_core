@@ -6,22 +6,18 @@ on:
     branches:
       - main
     paths:
-      - "software-full.json"
+      - "**software-full.json"
       - "Dockerfile"
-  schedule:
-    #  https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onschedule
-    #  * is a special character in YAML so you have to quote this string
-    - cron: "30 6 1 * *"
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0 # [!] we need to checkout with tags and commit history
       - name: Setup python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.x" # Version range or exact version of a Python version to use, using SemVer's version range syntax
           architecture: "x64" # optional x64 or x86. Defaults to x64 if not specified
@@ -35,9 +31,9 @@ jobs:
           include-hashes: false
       - name: Generate new release version
         id: newversion
-        run: python tools/release.py -u "${{ steps.changes.outputs.last-tag }}"
+        run: python default.py --prepare-release "${{ steps.changes.outputs.last-tag }}"
       - name: Create pull request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: Updated version in package.json to latest
           branch: update-version-in-package-json
@@ -47,7 +43,8 @@ jobs:
             
             Changes since ${{ steps.changes.outputs.last-tag }}:
             ${{ steps.changes.outputs.log }}
-          assignees: 7h3Rabbit
-          reviewers: 7h3Rabbit
+          assignees: cockroacher,marcusosterberg
+          reviewers: cockroacher,marcusosterberg
+          labels: ignore-for-release
           add-paths: |
             package.json

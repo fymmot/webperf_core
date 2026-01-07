@@ -1,0 +1,203 @@
+# Copyright (C) 2025 WebPerf
+# Marcus J Österberg <m@webperf.se>, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2025-04-27 12:00\n"
+"PO-Revision-Date: 2025-05-09 23:00\n"
+"Last-Translator: Marcus J Österberg <m@webperf.se>\n"
+"Language-Team: English <team@webperf.se>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+#
+# Example(s):
+# Please note that msgid has to be unique in each file.
+# {0} in msgstr will add the severity, one of (critical, error, warning, resolved).
+
+msgid "rule-id (unresolved)"
+msgstr "Text to show instead of msgid, showed for severity levels (critical, error and warning)"
+
+msgid "rule-id (resolved)"
+msgstr "Text to show instead of msgid, here unique on severity level resolved"
+
+msgid "rule-id"
+msgstr "Text to show instead of msgid, here independent of severity level"
+
+# End of Examples
+
+msgid "attr-spacing (unresolved)"
+msgstr "Kräv att attribut separeras med blanksteg ({0})"
+
+msgid "attr-spacing (resolved)"
+msgstr "Kräv att attribut separeras med blanksteg (löst)"
+
+msgid "attribute-allowed-values (unresolved)"
+msgstr "Validera tillåtna attributvärden ({0})"
+
+msgid "attribute-allowed-values (resolved)"
+msgstr "Validera tillåtna attributvärden (löst)"
+
+msgid "attribute-misuse (unresolved)"
+msgstr "Kräv att attribut används i rätt kontext ({0})"
+
+msgid "attribute-misuse (resolved)"
+msgstr "Kräv att attribut används i rätt kontext (löst)"
+
+msgid "close-attr (unresolved)"
+msgstr "Tillåt inte attribut på sluttaggar ({0})"
+
+msgid "close-attr (resolved)"
+msgstr "Tillåt inte attribut på sluttaggar (löst)"
+
+msgid "close-order (unresolved)"
+msgstr "Kräv att element stängs i rätt ordning ({0})"
+
+msgid "close-order (resolved)"
+msgstr "Kräv att element stängs i rätt ordning (löst)"
+
+msgid "deprecated (unresolved)"
+msgstr "Tillåt inte användning av föråldrade element ({0})"
+
+msgid "deprecated (resolved)"
+msgstr "Tillåt inte användning av föråldrade element (löst)"
+
+msgid "deprecated-rule (unresolved)"
+msgstr "Tillåt inte användning av föråldrade regler ({0})"
+
+msgid "deprecated-rule (resolved)"
+msgstr "Tillåt inte användning av föråldrade regler (löst)"
+
+msgid "doctype-html (unresolved)"
+msgstr "Kräv användning av \"html\" doctype ({0})"
+
+msgid "doctype-html (resolved)"
+msgstr "Kräv användning av \"html\" doctype (löst)"
+
+msgid "element-name (unresolved)"
+msgstr "Tillåt inte ogiltiga elementnamn ({0})"
+
+msgid "element-name (resolved)"
+msgstr "Tillåt inte ogiltiga elementnamn (löst)"
+
+msgid "element-permitted-content (unresolved)"
+msgstr "Validera tillåtet innehåll ({0})"
+
+msgid "element-permitted-content (resolved)"
+msgstr "Validera tillåtet innehåll (löst)"
+
+msgid "element-permitted-occurrences (unresolved)"
+msgstr "Validera tillåtet antal förekomster av element ({0})"
+
+msgid "element-permitted-occurrences (resolved)"
+msgstr "Validera tillåtet antal förekomster av element (löst)"
+
+msgid "element-permitted-order (unresolved)"
+msgstr "Validera nödvändig elementordning ({0})"
+
+msgid "element-permitted-order (resolved)"
+msgstr "Validera nödvändig elementordning (löst)"
+
+msgid "element-permitted-parent (unresolved)"
+msgstr "Validera tillåten elementförälder ({0})"
+
+msgid "element-permitted-parent (resolved)"
+msgstr "Validera tillåten elementförälder (löst)"
+
+msgid "element-required-attributes (unresolved)"
+msgstr "Säkerställ att obligatoriska attribut är satta ({0})"
+
+msgid "element-required-attributes (resolved)"
+msgstr "Säkerställ att obligatoriska attribut är satta (löst)"
+
+msgid "element-required-content (unresolved)"
+msgstr "Säkerställ att obligatoriska element finns ({0})"
+
+msgid "element-required-content (resolved)"
+msgstr "Säkerställ att obligatoriska element finns (löst)"
+
+msgid "map-dup-name (unresolved)"
+msgstr "Kräv att `<map name>` är unikt ({0})"
+
+msgid "map-dup-name (resolved)"
+msgstr "Kräv att `<map name>` är unikt (löst)"
+
+msgid "map-id-name (unresolved)"
+msgstr "Kräv att name och id matchar på `<map>`-element ({0})"
+
+msgid "map-id-name (resolved)"
+msgstr "Kräv att name och id matchar på `<map>`-element (löst)"
+
+msgid "no-deprecated-attr (unresolved)"
+msgstr "Tillåt inte användning av föråldrade attribut ({0})"
+
+msgid "no-deprecated-attr (resolved)"
+msgstr "Tillåt inte användning av föråldrade attribut (löst)"
+
+msgid "no-dup-attr (unresolved)"
+msgstr "Tillåt inte dubblerade attribut ({0})"
+
+msgid "no-dup-attr (resolved)"
+msgstr "Tillåt inte dubblerade attribut (löst)"
+
+msgid "no-dup-id (unresolved)"
+msgstr "Tillåt inte dubblerade ID:n ({0})"
+
+msgid "no-dup-id (resolved)"
+msgstr "Tillåt inte dubblerade ID:n (löst)"
+
+msgid "no-main (unresolved)"
+msgstr "Tillåt inte användning av `<main>` ({0})"
+
+msgid "no-main (resolved)"
+msgstr "Tillåt inte användning av `<main>` (löst)"
+
+msgid "no-multiple-main (unresolved)"
+msgstr "Tillåt inte flera `<main>` ({0})"
+
+msgid "no-multiple-main (resolved)"
+msgstr "Tillåt inte flera `<main>` (löst)"
+
+msgid "no-raw-characters (unresolved)"
+msgstr "Tillåt inte användning av oescaperade specialtecken ({0})"
+
+msgid "no-raw-characters (resolved)"
+msgstr "Tillåt inte användning av oescaperade specialtecken (löst)"
+
+msgid "no-unused-disable (unresolved)"
+msgstr "Tillåt inte oanvända disable-direktiv ({0})"
+
+msgid "no-unused-disable (resolved)"
+msgstr "Tillåt inte oanvända disable-direktiv (löst)"
+
+msgid "script-element (unresolved)"
+msgstr "Kräv sluttagg för `<script>` ({0})"
+
+msgid "script-element (resolved)"
+msgstr "Kräv sluttagg för `<script>` (löst)"
+
+msgid "unrecognized-char-ref (unresolved)"
+msgstr "Tillåt inte okända teckenreferenser ({0})"
+
+msgid "unrecognized-char-ref (resolved)"
+msgstr "Tillåt inte okända teckenreferenser (löst)"
+
+msgid "valid-autocomplete (unresolved)"
+msgstr "Kräv att autocomplete-attributet är giltigt ({0})"
+
+msgid "valid-autocomplete (resolved)"
+msgstr "Kräv att autocomplete-attributet är giltigt (löst)"
+
+msgid "valid-id (unresolved)"
+msgstr "Kräv att `id` är en giltig identifierare ({0})"
+
+msgid "valid-id (resolved)"
+msgstr "Kräv att `id` är en giltig identifierare (löst)"
+
+msgid "void-content (unresolved)"
+msgstr "Tillåt inte void-element med innehåll ({0})"
+
+msgid "void-content (resolved)"
+msgstr "Tillåt inte void-element med innehåll (löst)"

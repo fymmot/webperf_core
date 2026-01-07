@@ -1,5 +1,5 @@
-# Software (Alpha)
-[![Regression Test - Software (Alpha)](https://github.com/Webperf-se/webperf_core/actions/workflows/regression-test-software.yml/badge.svg)](https://github.com/Webperf-se/webperf_core/actions/workflows/regression-test-software.yml)
+# Software
+[![Regression Test - Software](https://github.com/Webperf-se/webperf_core/actions/workflows/regression-test-software.yml/badge.svg)](https://github.com/Webperf-se/webperf_core/actions/workflows/regression-test-software.yml)
 
 As all other test in webperf-core this test main focus is to improve knowleage and to encourage small and steady improvements.
 This test also has a general information section that aims to give information on software and tech usage at a overview level so you can see for example how common tech X is.
@@ -140,7 +140,7 @@ TODO: Add links to blogs and articles showing how to remove info regarding what 
 
 * Download and install Node.js (version 20.x)
 * Download and install Google Chrome browser
-* Install NPM packages ( `npm install --production` )
+* Install NPM packages ( `npm install --omit=dev` )
 * Set `sitespeed_use_docker = False` in your `config.py`
 
 ##### Windows Specific

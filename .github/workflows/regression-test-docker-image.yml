@@ -14,7 +14,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Setup QEMU # used to allow multiplatform docker builds
       uses: docker/setup-qemu-action@v3
     - name: Setup Docker Buildx # used to allow multiplatform docker builds
@@ -35,11 +35,12 @@ jobs:
       run: |
         version=$(docker run ${{ env.TEST_TAG }} python --version)
         echo "Python version: $version"
-        if [[ "$version" != "Python 3.12"* ]]; then
-          echo "Error: Default python version is not 3.12 based, was we unable to change default version?"
+        if [[ "$version" != "Python 3.10"* ]] && [[ "$version" != "Python 3.11"* ]] && [[ "$version" != "Python 3.12"* ]] && [[ "$version" != "Python 3.13"* ]]; then
+          echo "Error: Default python version is not one of the allowed versions (3.10, 3.11, 3.12, 3.13)"
           exit 1
         fi
     - name: Check if webperf_core help command works
+      if: always()
       run: |
         help=$(docker run ${{ env.TEST_TAG }} python default.py -h)
         echo "$help"
@@ -47,85 +48,31 @@ jobs:
           echo "Error: WebPerf-core help command is NOT returning expected content"
           exit 1
         fi
-    - name: Check if webperf_core can run Test 1
+    - name: Check if dependency tool works
       if: always()
       run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 1 -r -i sites.json)
-        echo "$testresult"
-        if [[ "$testresult" == *"Unable to connect to Chrome"* ]]; then
-          sleep 5
-          testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 1 -r -i sites.json)
-          echo "$testresult"
+        help=$(docker run ${{ env.TEST_TAG }} python default.py --dependency)
+        echo "$help"
+        if [[ "$help" != *"Python: OK"* ]]; then
+          echo "Error: dependency tool - Error with Python"
+          exit 1
         fi
-        if [[ "$testresult" == *"Unable to connect to Chrome"* ]]; then
-          sleep 5
-          testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 1 -r -i sites.json)
-          echo "$testresult"
+        if [[ "$help" != *"Node: OK"* ]]; then
+          echo "Error: dependency tool - Error with Node"
+          exit 1
         fi
-        if [[ "$testresult" != *"Performance:"* ]]; then
-          echo "Error: WebPerf-core testresult is NOT returning expected review"
+        if [[ "$help" != *"chrome: OK"* ]]; then
+          echo "Error: dependency tool - Error with Chrome"
+          exit 1
+        fi
+        if [[ "$help" != *"firefox: OK"* ]]; then
+          echo "Error: dependency tool - Error with Firefox"
           exit 1
         fi
     - name: Check if webperf_core can run Test 2
       if: always()
       run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 2 -r -i sites.json)
-        echo "$testresult"
-        if [[ "$testresult" != *"Standards:"* ]]; then
-          echo "Error: WebPerf-core testresult is NOT returning expected review"
-          exit 1
-        fi
-    - name: Check if webperf_core can run Test 4
-      if: always()
-      run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 4 -r -i sites.json)
-        echo "$testresult"
-        if [[ "$testresult" == *"Unable to connect to Chrome"* ]]; then
-          sleep 5
-          testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 4 -r -i sites.json)
-          echo "$testresult"
-        fi
-        if [[ "$testresult" == *"Unable to connect to Chrome"* ]]; then
-          sleep 5
-          testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 4 -r -i sites.json)
-          echo "$testresult"
-        fi
-        if [[ "$testresult" != *"Standards:"* ]]; then
-          echo "Error: WebPerf-core testresult is NOT returning expected review"
-          exit 1
-        fi
-    - name: Check if webperf_core can run Test 5
-      if: always()
-      run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 5 -r -i sites.json)
-        echo "$testresult"
-        if [[ "$testresult" == *"Unable to connect to Chrome"* ]]; then
-          sleep 5
-          testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 5 -r -i sites.json)
-          echo "$testresult"
-        fi
-        if [[ "$testresult" == *"Unable to connect to Chrome"* ]]; then
-          sleep 5
-          testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 5 -r -i sites.json)
-          echo "$testresult"
-        fi
-        if [[ "$testresult" != *"Integrity & Security:"* ]]; then
-          echo "Error: WebPerf-core testresult is NOT returning expected review"
-          exit 1
-        fi
-    - name: Check if webperf_core can run Test 6
-      if: always()
-      run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 6 -r -i sites.json)
-        echo "$testresult"
-        if [[ "$testresult" != *"Standards:"* ]]; then
-          echo "Error: WebPerf-core testresult is NOT returning expected review"
-          exit 1
-        fi
-    - name: Check if webperf_core can run Test 7
-      if: always()
-      run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 7 -r -i sites.json)
+        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 2 -r -i defaults/sites.json)
         echo "$testresult"
         if [[ "$testresult" != *"Standards:"* ]]; then
           echo "Error: WebPerf-core testresult is NOT returning expected review"
@@ -134,53 +81,25 @@ jobs:
     - name: Check if webperf_core can run Test 9
       if: always()
       run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 9 -r -i sites.json)
+        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 9 -r -i defaults/sites.json)
         echo "$testresult"
         if [[ "$testresult" != *"Integrity & Security:"* ]]; then
-          echo "Error: WebPerf-core testresult is NOT returning expected review"
-          exit 1
-        fi
-    - name: Check if webperf_core can run Test 10
-      if: always()
-      run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 10 -r -i sites.json)
-        echo "$testresult"
-        if [[ "$testresult" == *"Unable to connect to Chrome"* ]]; then
-          sleep 5
-          testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 10 -r -i sites.json)
-          echo "$testresult"
-        fi
-        if [[ "$testresult" == *"Unable to connect to Chrome"* ]]; then
-          sleep 5
-          testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 10 -r -i sites.json)
-          echo "$testresult"
-        fi
-        if [[ "$testresult" != *"A11y:"* ]]; then
           echo "Error: WebPerf-core testresult is NOT returning expected review"
           exit 1
         fi
     - name: Check if webperf_core can run Test 15
       if: always()
       run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 15 -r -i sites.json)
+        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 15 -r -i defaults/sites.json)
         echo "$testresult"
         if [[ "$testresult" != *"Performance:"* ]]; then
-          echo "Error: WebPerf-core testresult is NOT returning expected review"
-          exit 1
-        fi
-    - name: Check if webperf_core can run Test 17
-      if: always()
-      run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 17 -r -i sites.json)
-        echo "$testresult"
-        if [[ "$testresult" != *"Integrity & Security:"* ]]; then
           echo "Error: WebPerf-core testresult is NOT returning expected review"
           exit 1
         fi
     - name: Check if webperf_core can run Test 18
       if: always()
       run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 18 -r -i sites.json)
+        testresult=$(docker run --shm-size=4g -e MAX_OLD_SPACE_SIZE=3000 ${{ env.TEST_TAG }} python default.py -t 18 -r -i defaults/sites.json)
         echo "$testresult"
         if [[ "$testresult" != *"A11y:"* ]]; then
           echo "Error: WebPerf-core testresult is NOT returning expected review"
@@ -189,7 +108,7 @@ jobs:
     - name: Check if webperf_core can run Test 20
       if: always()
       run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 20 -r -i sites.json)
+        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 20 -r -i defaults/sites.json)
         echo "$testresult"
         if [[ "$testresult" != *"Integrity & Security:"* ]]; then
           echo "Error: WebPerf-core testresult is NOT returning expected review"
@@ -198,7 +117,7 @@ jobs:
     - name: Check if webperf_core can run Test 21
       if: always()
       run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 21 -r -i sites.json)
+        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 21 -r -i defaults/sites.json)
         echo "$testresult"
         if [[ "$testresult" != *"Integrity & Security:"* ]]; then
           echo "Error: WebPerf-core testresult is NOT returning expected review"
@@ -207,17 +126,21 @@ jobs:
     - name: Check if webperf_core can run Test 22
       if: always()
       run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 22 -r -i sites.json)
+        testresult=$(docker run --shm-size=4g -e MAX_OLD_SPACE_SIZE=3000 ${{ env.TEST_TAG }} python default.py -t 22 -r -i defaults/sites.json)
         echo "$testresult"
         if [[ "$testresult" == *"Unable to connect to Chrome"* ]]; then
           sleep 5
-          testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 22 -r -i sites.json)
+          testresult=$(docker run --shm-size=4g -e MAX_OLD_SPACE_SIZE=3000 ${{ env.TEST_TAG }} python default.py -t 22 -r -i defaults/sites.json)
           echo "$testresult"
         fi
         if [[ "$testresult" == *"Unable to connect to Chrome"* ]]; then
           sleep 5
-          testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 22 -r -i sites.json)
+          testresult=$(docker run --shm-size=4g -e MAX_OLD_SPACE_SIZE=3000 ${{ env.TEST_TAG }} python default.py -t 22 -r -i defaults/sites.json)
           echo "$testresult"
+        fi
+        if [[ "$testresult" == *"Error, was unable to load the page you requested"* ]]; then
+          echo "Error: WebPerf-core testresult is NOT returning expected review"
+          exit 1
         fi
         if [[ "$testresult" != *"Overall:"* ]]; then
           echo "Error: WebPerf-core testresult is NOT returning expected review"
@@ -226,7 +149,7 @@ jobs:
     - name: Check if webperf_core can run Test 23
       if: always()
       run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 23 -r -i sites.json)
+        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 23 -r -i defaults/sites.json)
         echo "$testresult"
         if [[ "$testresult" != *"Integrity & Security:"* ]]; then
           echo "Error: WebPerf-core testresult is NOT returning expected review"
@@ -235,7 +158,7 @@ jobs:
     - name: Check if webperf_core can run Test 24
       if: always()
       run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 24 -r -i sites.json)
+        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 24 -r -i defaults/sites.json)
         echo "$testresult"
         if [[ "$testresult" != *"Integrity & Security:"* ]]; then
           echo "Error: WebPerf-core testresult is NOT returning expected review"
@@ -244,7 +167,7 @@ jobs:
     - name: Check if webperf_core can run Test 25
       if: always()
       run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 25 -r -i sites.json)
+        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 25 -r -i defaults/sites.json)
         echo "$testresult"
         if [[ "$testresult" != *"Integrity & Security:"* ]]; then
           echo "Error: WebPerf-core testresult is NOT returning expected review"
@@ -253,9 +176,59 @@ jobs:
     - name: Check if webperf_core can run Test 26
       if: always()
       run: |
-        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 26 -r -i sites.json)
+        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 26 -r -i defaults/sites.json)
         echo "$testresult"
         if [[ "$testresult" != *"A11y:"* ]]; then
+          echo "Error: WebPerf-core testresult is NOT returning expected review"
+          exit 1
+        fi
+    - name: Check if webperf_core can run Test 27
+      if: always()
+      run: |
+        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 27 -r -i defaults/sites.json)
+        echo "$testresult"
+        if [[ "$testresult" != *"Standards:"* ]]; then
+          echo "Error: WebPerf-core testresult is NOT returning expected review"
+          exit 1
+        fi
+    - name: Check if webperf_core can run Test 28
+      if: always()
+      run: |
+        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 28 -r -i defaults/sites.json)
+        echo "$testresult"
+        if [[ "$testresult" != *"Standards:"* ]]; then
+          echo "Error: WebPerf-core testresult is NOT returning expected review"
+          exit 1
+        fi
+    - name: Check if webperf_core can run Test 29
+      if: always()
+      run: |
+        testresult=$(docker run ${{ env.TEST_TAG }} python default.py -t 29 -r -i defaults/sites.json)
+        echo "$testresult"
+        if [[ "$testresult" != *"Standards:"* ]]; then
+          echo "Error: WebPerf-core testresult is NOT returning expected review"
+          exit 1
+        fi
+    - name: Check if webperf_core can run Test 30
+      if: always()
+      run: |
+        testresult=$(docker run --shm-size=4g -e MAX_OLD_SPACE_SIZE=3000 ${{ env.TEST_TAG }} python default.py -t 30 -r -i defaults/sites.json)
+        echo "$testresult"
+        if [[ "$testresult" == *"Unable to connect to Chrome"* ]]; then
+          sleep 5
+          testresult=$(docker run --shm-size=4g -e MAX_OLD_SPACE_SIZE=3000 ${{ env.TEST_TAG }} python default.py -t 30 -r -i defaults/sites.json)
+          echo "$testresult"
+        fi
+        if [[ "$testresult" == *"Unable to connect to Chrome"* ]]; then
+          sleep 5
+          testresult=$(docker run --shm-size=4g -e MAX_OLD_SPACE_SIZE=3000 ${{ env.TEST_TAG }} python default.py -t 30 -r -i defaults/sites.json)
+          echo "$testresult"
+        fi
+        if [[ "$testresult" == *"Error, was unable to load the page you requested"* ]]; then
+          echo "Error: WebPerf-core testresult is NOT returning expected review"
+          exit 1
+        fi
+        if [[ "$testresult" != *"Performance:"* ]]; then
           echo "Error: WebPerf-core testresult is NOT returning expected review"
           exit 1
         fi

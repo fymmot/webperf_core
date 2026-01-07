@@ -11,10 +11,12 @@ from PIL.ExifTags import TAGS
 from PIL import Image
 # https://docs.python.org/3/library/urllib.parse.html
 import packaging.version
-from models import Rating, DefaultInfo
+from helpers.models import Rating, DefaultInfo
+from helpers.browser_helper import get_chromium_browser
+from helpers.setting_helper import get_config
 from tests.sitespeed_base import get_result
 from tests.utils import get_http_content, get_translation, is_file_older_than
-from helpers.setting_helper import get_config
+from engines.sitespeed_result import read_sites_from_directory
 
 # Debug flags for every category here,
 # this so we can print out raw values (so we can add more allowed once)
@@ -58,6 +60,7 @@ def get_rating_from_sitespeed(url, local_translation, global_translation):
         '--plugins.remove screenshot '
         '--plugins.remove html '
         '--plugins.remove metrics '
+        '--plugins.add plugin-webperf-core '
         '--browsertime.screenshot false '
         '--screenshot false '
         '--screenshotLCP false '
@@ -70,7 +73,7 @@ def get_rating_from_sitespeed(url, local_translation, global_translation):
         '--utc true '
         f'-n {sitespeed_iterations}')
 
-    if 'firefox' in get_config('tests.software.browser'):
+    if 'firefox' in get_config('tests.sitespeed.browser'):
         sitespeed_arg = (
             '-b firefox '
             '--firefox.includeResponseBodies all '
@@ -81,7 +84,7 @@ def get_rating_from_sitespeed(url, local_translation, global_translation):
             f'{sitespeed_arg}')
     else:
         sitespeed_arg = (
-            '-b chrome '
+            f'-b {get_chromium_browser()} '
             '--chrome.cdp.performance false '
             '--browsertime.chrome.timeline false '
             '--browsertime.chrome.includeResponseBodies all '
@@ -90,10 +93,8 @@ def get_rating_from_sitespeed(url, local_translation, global_translation):
 
     sitespeed_arg = f'--shm-size=1g {sitespeed_arg}'
 
-    if not ('nt' in os.name or 'Darwin' in os.uname().sysname):
+    if get_config('tests.sitespeed.xvfb'):
         sitespeed_arg += ' --xvfb'
-
-    sitespeed_arg += ' --postScript chrome-cookies.cjs --postScript chrome-versions.cjs'
 
     (result_folder_name, filename) = get_result(
         url,
@@ -104,9 +105,14 @@ def get_rating_from_sitespeed(url, local_translation, global_translation):
     o = urlparse(url)
     origin_domain = o.hostname
 
+    browsertime_Hars = read_sites_from_directory(result_folder_name, origin_domain, -1, -1)
     rating = Rating(global_translation, get_config('general.review.improve-only'))
+    if len(browsertime_Hars) < 1:
+        rating.overall_review = global_translation('TEXT_SITE_UNAVAILABLE')
+        return (rating, {'failed': True })
+
     rules = get_rules()
-    data = identify_software(filename, origin_domain, rules)
+    data = identify_software(browsertime_Hars[0][0], origin_domain, rules)
     if data is None:
         rating.overall_review = global_translation('TEXT_SITE_UNAVAILABLE')
         return (rating, {'failed': True })
@@ -125,9 +131,6 @@ def get_rating_from_sitespeed(url, local_translation, global_translation):
         rating.overall_review = ''
     rating.integrity_and_security_review = rating.integrity_and_security_review\
         .replace('GOV-IGNORE', '').strip('\r\n\t ')
-
-    if not get_config('general.cache.use'):
-        os.remove(filename)
 
     return (rating, result)
 
@@ -181,6 +184,7 @@ def rate_software_security_result(local_translation, global_translation, result)
     has_source_issues = False
     # has_multiple_versions_issues = False
     has_end_of_life_issues = False
+    has_a11y_overlay_issues = False
 
     for issue_type in result['issues']:
         if issue_type.startswith('CVE'):
@@ -207,10 +211,16 @@ def rate_software_security_result(local_translation, global_translation, result)
                 result,
                 local_translation,
                 global_translation)
-
         elif issue_type.startswith('END_OF_LIFE'):
             has_end_of_life_issues = True
             rating += rate_software_end_of_life(
+                local_translation,
+                global_translation,
+                result,
+                issue_type)
+        elif issue_type.startswith('A11Y_OVERLAY'):
+            has_a11y_overlay_issues = True
+            rating += rate_use_of_a11y_overlay(
                 local_translation,
                 global_translation,
                 result,
@@ -223,13 +233,15 @@ def rate_software_security_result(local_translation, global_translation, result)
         has_behind_issues,
         has_source_issues,
         has_end_of_life_issues,
+        has_a11y_overlay_issues,
         local_translation,
         global_translation)
 
     return rating
 
 def rate_software_no_issues(has_cve_issues, has_behind_issues, has_source_issues,
-                            has_end_of_life_issues, local_translation, global_translation):
+                            has_end_of_life_issues, has_a11y_overlay_issues,
+                            local_translation, global_translation):
     rating = Rating(global_translation, get_config('general.review.improve-only'))
     if not has_cve_issues:
         points = 5.0
@@ -286,7 +298,47 @@ def rate_software_no_issues(has_cve_issues, has_behind_issues, has_source_issues
         else:
             sub_rating.set_integrity_and_security(points)
         rating += sub_rating
+
+    if not has_a11y_overlay_issues:
+        points = 5.0
+        sub_rating = Rating(
+            global_translation,
+            get_config('general.review.improve-only'))
+        sub_rating.set_overall(points)
+        if get_config('general.review.details'):
+            sub_rating.set_a11y(
+                points,
+                local_translation('TEXT_DETAILED_REVIEW_NO_A11Y_OVERLAY'))
+        else:
+            sub_rating.set_a11y(points)
+        rating += sub_rating
+
     return rating
+
+def rate_use_of_a11y_overlay(local_translation, global_translation, result, issue_type):
+    points = 1.0
+    sub_rating = Rating(
+        global_translation,
+        get_config('general.review.improve-only'))
+    sub_rating.set_overall(points)
+    sub_rating.set_a11y(points)
+
+    if get_config('general.review.details'):
+        text = local_translation(f'TEXT_DETAILED_REVIEW_{issue_type}')\
+                    .replace('#POINTS#', str(sub_rating.get_a11y()))
+        text += '\r\n'
+        text += local_translation('TEXT_DETAILED_REVIEW_DETECTED_SOFTWARE')
+        text += '\r\n'
+        for software in result['issues'][issue_type]['softwares']:
+            text += f'- {software}\r\n'
+
+        text += '\r\n'
+        text += local_translation('TEXT_DETAILED_REVIEW_AFFECTED_RESOURCES')
+        text += '\r\n'
+        for resource in result['issues'][issue_type]['resources']:
+            text += f'- {resource}\r\n'
+        sub_rating.a11y_review = text
+    return sub_rating
 
 def rate_software_end_of_life(local_translation, global_translation, result, issue_type):
     points = 1.75
@@ -453,7 +505,9 @@ def sum_overall_software_used(local_translation, result):
     categories = ['cms', 'webserver', 'os',
                   'analytics', 'tech', 'license', 'meta',
                   'js', 'css',
-                  'lang', 'img', 'img.software', 'img.os', 'img.device', 'video']
+                  'lang', 'img', 'img.software', 'img.os', 'img.device', 'video',
+                  'a11y_overlay'
+                  ]
 
     for category in categories:
         if category in result:
@@ -499,6 +553,7 @@ def convert_item_to_domain_data(data):
             if 'is-latest-version' in match:
                 result[category][name]['is-latest-version'] = match['is-latest-version']
             append_item_tech_to_result(result, match)
+            append_item_a11y_overlays_to_result(item['url'], result, match)
             append_item_img_to_result(result, match)
 
             if result[category][name][version]['precision'] < precision:
@@ -528,6 +583,22 @@ def append_item_img_to_result(result, match):
                                 "precision": 0.8
                             }
                         }
+
+def append_item_a11y_overlays_to_result(item_url, result, match):
+    if 'a11y_overlay' != match['category']:
+        return
+
+    if 'A11Y_OVERLAY' not in result['issues']:
+        result['issues']['A11Y_OVERLAY'] = {
+            'softwares': [match['name']],
+            'resources': [item_url],
+            'sub-issues': []
+        }
+    else:
+        if match['name'] not in result['issues']['A11Y_OVERLAY']['softwares']:
+            result['issues']['A11Y_OVERLAY']['softwares'].append(match['name'])
+        if item_url not in result['issues']['A11Y_OVERLAY']['resources']:
+            result['issues']['A11Y_OVERLAY']['resources'].append(item_url)
 
 def append_item_tech_to_result(result, match):
     if 'tech' in match:
@@ -605,7 +676,7 @@ def get_softwares():
 
     file_path = f'{base_directory}{os.path.sep}data{os.path.sep}software-full.json'
     if not os.path.isfile(file_path):
-        file_path = f'{base_directory}{os.path.sep}software-full.json'
+        file_path = f'{base_directory}{os.path.sep}defaults{os.path.sep}software-full.json'
     if not os.path.isfile(file_path):
         print("ERROR: No software-full.json file found!")
         return {
@@ -623,7 +694,7 @@ def add_known_software_source(name, source_type, match, url):
 
     file_path = f'{base_directory}{os.path.sep}data{os.path.sep}software-sources.json'
     if not os.path.isfile(file_path):
-        file_path = f'{base_directory}{os.path.sep}software-sources.json'
+        file_path = f'{base_directory}{os.path.sep}defaults{os.path.sep}software-sources.json'
     if not os.path.isfile(file_path):
         print("ERROR: No software-sources.json file found!")
         return
@@ -843,7 +914,7 @@ def enrich_data_from_javascript(item, rules):
     for match in item['matches']:
         if match['category'] != 'js':
             return
-        if 'license-txt' in item:
+        if 'license-txt' in match:
             content = get_http_content(
                 match['license-txt'].lower(), allow_redirects=True)
             lookup_response_content(
@@ -1095,8 +1166,11 @@ def identify_software(filename, origin_domain, rules):
         if 'log' in har_data:
             har_data = har_data['log']
 
-        if 'software' in har_data:
+        if '_software' in har_data:
+            global_software = har_data['_software']
+        elif 'software' in har_data:
             global_software = har_data['software']
+
         if 'cookies' in har_data:
             global_cookies = har_data['cookies']
 
@@ -1142,6 +1216,9 @@ def identify_software(filename, origin_domain, rules):
         lookup_cookies(
             data[0], global_cookies, rules)
 
+    if global_software is None:
+        return data
+
     for software_name in global_software.keys():
         versions = global_software[software_name]
         if len(versions) == 0:
@@ -1157,9 +1234,13 @@ def cleanup_duplicates(item):
     item['matches'] = list(set(item['matches']))
 
 def cleanup_used_global_software(global_software, item):
+    if global_software is None:
+        return
+
     for match in item['matches']:
         if match['name'] in global_software and match['version'] in global_software[match['name']]:
             global_software[match['name']].remove(match['version'])
+
 
 
 def lookup_response_mimetype(item, response_mimetype):
@@ -1640,6 +1721,19 @@ def run_test(global_translation, url):
 
         with open('debug.json', 'w', encoding='utf-8', newline='') as file:
             file.write(nice_raw)
+
+    reviews = rating.get_reviews()
+    print(global_translation('TEXT_SITE_RATING'), rating)
+    if get_config('general.review.show'):
+        print(
+            global_translation('TEXT_SITE_REVIEW'),
+            reviews)
+
+    if get_config('general.review.data'):
+        nice_json_data = json.dumps(result_dict, indent=3)
+        print(
+            global_translation('TEXT_SITE_REVIEW_DATA'),
+            f'```json\r\n{nice_json_data}\r\n```')
 
 
     return (rating, result_dict)

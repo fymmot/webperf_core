@@ -4,8 +4,9 @@ import time
 import urllib  # https://docs.python.org/3/library/urllib.parse.html
 import re
 import requests
+import json
 from bs4 import BeautifulSoup
-from models import Rating
+from helpers.models import Rating
 from tests.utils import get_translation
 from helpers.setting_helper import get_config
 
@@ -56,7 +57,7 @@ def run_test(global_translation, url):
         return (error_rating, {'failed': True })
 
     for result in results:
-        rating += rate_result(result, global_translation, local_translation)
+        rating += rate_result(result, global_translation, local_translation, return_dict)
 
     points = rating.get_integrity_and_security()
     if points >= 5:
@@ -73,7 +74,7 @@ def run_test(global_translation, url):
         review = local_translation('TEXT_REVIEW_IS_VERY_BAD') + review
         points = 1.0
 
-    # give us result date (for when dataskydd.net generated report)
+    # give us result date (for when 5july.net generated report)
     extend_review_with_date_for_last_run(review, local_translation, result_title)
 
     rating.set_overall(points)
@@ -81,6 +82,19 @@ def run_test(global_translation, url):
 
     print(global_translation('TEXT_TEST_END').format(
         datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+
+    reviews = rating.get_reviews()
+    print(global_translation('TEXT_SITE_RATING'), rating)
+    if get_config('general.review.show'):
+        print(
+            global_translation('TEXT_SITE_REVIEW'),
+            reviews)
+
+    if get_config('general.review.data'):
+        nice_json_data = json.dumps(return_dict, indent=3)
+        print(
+            global_translation('TEXT_SITE_REVIEW_DATA'),
+            f'```json\r\n{nice_json_data}\r\n```')
 
     return (rating, return_dict)
 
@@ -106,7 +120,7 @@ def extend_review_with_date_for_last_run(review, local_translation, result_title
 
 def get_html_content(orginal_url, lang_code, local_translation):
     """
-    Retrieves test result as HTML content from webbkollen website by dataskydd.
+    Retrieves test result as HTML content from webbkollen website by 5July.
 
     Args:
         orginal_url (str): The URL of the webpage to be retrieved.
@@ -127,7 +141,7 @@ def get_html_content(orginal_url, lang_code, local_translation):
     while has_refresh_statement:
         has_refresh_statement = False
         request = session.get(
-            (f'https://webbkoll.dataskydd.net/{lang_code}'
+            (f'https://webbkoll.5july.net/{lang_code}'
              f'/check?url={urllib.parse.quote(orginal_url)}'),
             allow_redirects=True,
             headers=headers,
@@ -145,7 +159,7 @@ def get_html_content(orginal_url, lang_code, local_translation):
                 '_csrf_token': csrf_value,
                 'url': orginal_url,
                 'submit': ''}
-            service_url = f'https://webbkoll.dataskydd.net/{lang_code}/check'
+            service_url = f'https://webbkoll.5july.net/{lang_code}/check'
             request = session.post(service_url, allow_redirects=True,
                                    headers=headers,
                                    timeout=get_config('general.request.timeout'),
@@ -163,7 +177,7 @@ def get_html_content(orginal_url, lang_code, local_translation):
         time.sleep(max(get_config('tests.webbkoll.sleep'), 5))
     return html_content
 
-def rate_result(result, global_translation, local_translation):# pylint: disable=too-many-locals
+def rate_result(result, global_translation, local_translation, return_dict):# pylint: disable=too-many-locals
     """
     Rates is calculated by the number of:
     successes, alerts, warnings, sub-alerts, and sub-warnings in the result.
@@ -247,6 +261,18 @@ def rate_result(result, global_translation, local_translation):# pylint: disable
                                     number_of_sub_alerts,
                                     number_of_sub_warnings,
                                     more_info)
+
+    header_key = re.sub(REGEX_ALLOWED_CHARS, '',
+                                    header.text, 0, re.MULTILINE).strip()
+
+    return_dict[header_key] = {
+        "number_of_success": number_of_success,
+        "number_of_alerts": number_of_alerts,
+        "number_of_warnings": number_of_warnings,
+        "number_of_sub_alerts": number_of_sub_alerts,
+        "number_of_sub_warnings": number_of_sub_warnings,
+        "more_info": more_info
+    }
 
     heading_rating.set_integrity_and_security(
         points_for_current_result, review)
